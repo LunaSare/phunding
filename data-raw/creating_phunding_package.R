@@ -1,6 +1,7 @@
 setwd("/Users/luna/GoogleDrive/lunasare.com")
-# devtools::create("phunding")
+devtools::create("phunding")
 setwd("/Users/luna/GoogleDrive/lunasare.com/phunding")
+devtools::use_readme_md()
 devtools::use_data_raw()
 # get data from rnsf package and download to data-raw
 load("data-raw/grants.rda")
