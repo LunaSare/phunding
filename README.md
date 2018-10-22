@@ -1,6 +1,6 @@
 # phunding
 
-The goal of phunding package is to map taxa studied in awarded grants, to determine  how much funding different organisms across the tree of life are receiving funding from any institution.
+The goal of phunding package is to determine how much money is being used to study different organisms in a Systematics and Phylogenetics context. It allows extracting taxa fron grants awarded by different Institutions (only NSF for now) and mapping these taxa to a (family level) tree of Life.
 
 ## Example
 
