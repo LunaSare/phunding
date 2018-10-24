@@ -11,7 +11,9 @@
 # load("grants.rda")
 get_funded_taxa <- function(database = "grants.rda") {
   # utils::data(grants, package = "rnsf") #from rnsf
-  # installing package is not working so downloaded data file for now
+  # installing package is not working so downloaded data to this package for now
+  # load("data-raw/grants.rda") # cannot do this inside a function
+  utils::data(grants)
   if(database == "grants.rda"){
     # utils::data("grants.rda")
     good.grant.indices <- which(grepl("systematics|phylo|bioinfor|taxonom|revision|peet", grants$fundProgramName, ignore.case=TRUE))
@@ -37,8 +39,6 @@ get_funded_taxa <- function(database = "grants.rda") {
   return(relevant.grants)
 }
 
-
-# write(x = paste0("#'   \\item{", names(nsf_relevant_gran_raw), "}{A ", gsub("character", "character vector", sapply(relevant.grants, class)), " of ", "}"), file = "nsf_relevant_grants_names.txt", sep = "\n")
 
 #' Systematics and Phylogenetics NSF awards information and studied taxa
 #'
@@ -104,3 +104,13 @@ get_funded_taxa <- function(database = "grants.rda") {
 #' Generated with nsf_relevant_grants_raw <- get_funded_taxa()
 #'
 "nsf_relevant_grants_raw"
+
+#' NSF awards information database from rnsf package
+#'
+#' It includes grants from its start until the databse was last copied in 2018.10.15.
+#' @name grants
+#' @docType data
+#' @format A list of 45 elements, with information on NSF awarded grants.
+#' @source \url{http://www.nsf.org}
+#' @keywords nsf grant
+"grants"
