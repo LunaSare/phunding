@@ -36,10 +36,13 @@ devtools::test() # it is not working because grants object is in data-raw dir
 # data.rda has to be in data dir so it can be used inside any function and testhat
 # so moving it there and generating a description for it
 devtools::document()
-devtools::test() # this one passed successfully
-# add documentation for the package as a whole
-devtools::use_package_doc() # this creates a dummy that need to be edited by hand
-# once it is edited, let's run document() again
-devtools::document()
-# create a vignette for the nsf funded tree of life
-devtools::use_vignette("NSF-funded-Tree-of-Life")
+devtools::check() # passed with 1 warning and 3 notes
+devtools::test() # this one is not passing for some reason
+# curate nsf_relevant_grants_raw in clean_funded_taxa
+
+# # add documentation for the package as a whole
+# devtools::use_package_doc() # this creates a dummy that need to be edited by hand
+# # once it is edited, let's run document() again
+# devtools::document()
+# # create a vignette for the nsf funded tree of life
+# devtools::use_vignette("NSF-funded-Tree-of-Life")
