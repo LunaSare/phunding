@@ -38,10 +38,55 @@ devtools::test() # it is not working because grants object is in data-raw dir
 devtools::document()
 devtools::check() # passed with 1 warning and 3 notes
 devtools::test() # this one is not passing for some reason
-# curate nsf_relevant_grants_raw in clean_funded_taxa
+# curate nsf_relevant_grants_raw with clean_funded_taxa
+devtools::load_all()
+utils::data(nsf_relevant_grants_raw)
+nsf_relevant_grants_c1 <- clean_unmapped_taxa()
+unique(unlist(nsf_relevant_grants_c1$taxa_correct))
+names(nsf_relevant_grants_c1)
+nsf_relevant_grants_c2 <- clean_approximated_taxa(nsf_relevant_grants_c1)
+# cottoidea is not in ott taxonomy
+rotl::tnrs_match_names("cottoidea")
+# according to the title of the grant it is a superfamily of sculpins
+# so we have to get the families from a taxonomic database:
+taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
+# Cottoidea is not found on any taxonomy (tried itis, col, gbif and ncbi)
+# so I gathered the info available in wikipedia. It referenced Nelson 2006 fishes of the world
+# so I compilated families from two editions and matched to tnrs
+cott <- get_ott_taxa(taxa = tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
+  "Ereuniidae", "Hemitripteridae", "JORDANIIDAE", "RHAMPHOCOTTIDAE",
+  "SCORPAENICHTHYIDAE", "AGONIDAE", "COTTIDAE", "PSYCHROLUTIDAE", "BATHYLUTICHTHYIDAE")))
+paste(cott, collapse = ",")
+#Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae
+nsf_relevant_grants_raw <- nsf_relevant_grants_c1
+unique(unlist(nsf_relevant_grants_c2$taxa_correct))
+nsf_relevant_grants_c3 <- clean_synonym_taxa(nsf_relevant_grants_c2)
+unique(unlist(nsf_relevant_grants_c3$taxa_ott))
+unique(unlist(nsf_relevant_grants_c3$taxa_correct))
+nsf_relevant_grants_raw <- nsf_relevant_grants_c3
+nsf_relevant_grants_c4 <- clean_suspicious_taxa(nsf_relevant_grants_c3, taxa=c("medium", "pegasus"))
+unique(unlist(nsf_relevant_grants_c4$taxa_ott))
+unique(unlist(nsf_relevant_grants_raw$taxa_correct))
+head(tax_map_tnrs)
+nsf_relevant_grants_raw <- nsf_relevant_grants_c4
+# add_ott_families tests
+tax_info[[i]]$lineage[grep("^family$", sapply(tax_info[[i]]$lineage, "[", "rank"))][[1]]$unique_name
+taxa <- tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
+"Ereuniidae", "Hemitripteridae", "JORDANIIDAE", "RHAMPHOCOTTIDAE",
+"SCORPAENICHTHYIDAE", "AGONIDAE", "COTTIDAE", "PSYCHROLUTIDAE", "BATHYLUTICHTHYIDAE"))
+external[[1]] <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
+external <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
+nsf_relevant_grants <- get_ott_families(nsf_relevant_grants_c4)
+nsf_relevant_grants$fams
+# get money per family
+fams_funds <- get_funds()
+sapply("Nileidae", grep, nsf_relevant_grants$fams)
+# get the family tree of Life
+devtools::use_package("datelife")
+# map tips to the Tree
 
 # # add documentation for the package as a whole
-# devtools::use_package_doc() # this creates a dummy that need to be edited by hand
+# devtools::use_package_doc() # this creates a dummy that needs to be edited by hand
 # # once it is edited, let's run document() again
 # devtools::document()
 # # create a vignette for the nsf funded tree of life
