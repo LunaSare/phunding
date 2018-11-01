@@ -8,6 +8,8 @@ vector_names <- function(all){ # change to vector_grant_taxa
   # unique_names <- tolower(unique_names)
   return(unique_names)
 }
+
+# add ott_ids on all these functions too
 clean_unmapped_taxa <- function(){
     utils::data("nsf_relevant_grants_raw")
     nsf_relevant_grants_raw$taxa_correct <- nsf_relevant_grants_raw$taxa_low <- sapply(nsf_relevant_grants_raw$taxa, tolower)
@@ -228,7 +230,7 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
       taxa_correct <- taxa_correct[sapply(taxa_correct, function(x)any(x != ""))]
   }
   taxa_correct <- sapply(taxa_correct, strsplit, ",")
-  taxa_correct <- lapply(approxed_correct, trimws)
+  taxa_correct <- lapply(taxa_correct, trimws)
 
   # sapply(test, function(x)any(x == "")) & sapply(test, function(x) length(x) == 1)
   for(i in seq(taxa)){
@@ -262,46 +264,67 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
   return(nsf_relevant_grants_raw)
 }
 get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
+    # enhancement: add possibility to get families from other taxonomies
+    # e.g., taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
   if(is.null(nsf_relevant_grants_raw)){
       ott_names <- taxa
   } else {
-      nsf_relevant_grants_raw$taxa_ott_fams <- nsf_relevant_grants_raw$taxa_ott
       ott_names <- vector_names(nsf_relevant_grants_raw$taxa_ott)
   }
   # tax_map_tnrs <- rotl::tnrs_match_names(ott_names)
   tax_map_tnrs <- datelife::input_tnrs(input = ott_names)
-  fams <- vector(mode = "list", length = length(ott_names))
-  names(fams) <- ott_names
-
-  tax_info <- rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id, include_lineage = TRUE)
-  # tax_info <- rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[!is.na(tax_map_tnrs$ott_id)])
+  tax_info <- fam_ids <- fams <- vector(mode = "list", length = length(ott_names))
+  names(tax_info) <- names(fams) <- ott_names
+  progression <- utils::txtProgressBar(min = 0, max = length(tax_info), style = 3)
+  cat("Getting lineage information\n")
+  for (i in seq(tax_info)){
+      tax_info[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[i], include_lineage = TRUE),
+        error = function(e) NA)
+      utils::setTxtProgressBar(progression, i)
+  }
 
   tax_map_tnrs$rank <- tax_map_tnrs$ott_id
   tax_map_tnrs$rank[!is.na(tax_map_tnrs$ott_id)] <- unlist(sapply(tax_info, "[", "rank"))
 
   fams_index <- grep("^family$", tax_map_tnrs$rank)
   fams[fams_index] <- tax_map_tnrs$unique[fams_index]
+  fam_ids[fams_index] <- tax_map_tnrs$ott_id[fams_index]
 
   subfams_index <- sort(unname(unlist(sapply(c("species", "genus", "subfamily"), grep, tax_map_tnrs$rank))))
-  fams[subfams_index] <- sapply(tax_info[subfams_index], function(x) x$lineage[grep("^family$", sapply(x$lineage, "[", "rank"))][[1]]$unique_name)
-  # x <- tax_info[[1]]
+  fams[subfams_index] <- sapply(tax_info[subfams_index], function(x) {
+      lin <- tryCatch(x$lineage[grep("^family$", sapply(x$lineage, "[", "rank"))][[1]]$unique_name,
+      error = function(e) NA)
+      return(lin)
+  })
+  fam_ids[subfams_index] <- sapply(tax_info[subfams_index], function(x) {
+      lin <- tryCatch(x$lineage[grep("^family$", sapply(x$lineage, "[", "rank"))][[1]]$ott_id,
+      error = function(e) NA)
+      return(lin)
+  })
+  # tt <- rotl::taxonomy_taxon_info(unique(unlist(fam_ids[c(subfams_index, fams_index)])))
+  # length(tt)
+  # names(tt[[1]])
+  # sapply(tt, "[", "fags") # they are all clean
   superfams_index <- sort(unname(unlist(sapply(c("phylum", "domain", "class", "order", "superfamily"), grep, tax_map_tnrs$rank))))
-  tax_info2 <- rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[superfams_index], include_children = TRUE)
-  # length(tax_info2[[1]]$children)
-  # tax_info2[[1]]$children[[1]]
-  # length(tax_info[[1]]$children[grep("^family$", sapply(tax_info2[[1]]$children, "[", "rank"))][[1]]$unique_name)
-  ranks <- sapply(tax_info2, function(x) sapply(x$children, "[", "rank"))
-  ranks_index <- sapply(ranks, function(x) grep("^family$", x))
-  # sapply(ranks_index, length) # number of actual families
-  # sapply(tax_info2[4], function(x) sapply(x$children, "[", "rank"))
-  superfams <- sapply(tax_info2, function(x) sapply(x$children, "[", "unique_name"))
-  # length(superfams)
-  # superfams[[1]][ranks_index[[1]]]
-  # superfams[unlist(ranks_index)]
-  # fams[superfams_index]
+  tax_info2 <- vector(mode = "list", length = length(superfams_index))
+  progression <- utils::txtProgressBar(min = 0, max = length(superfams_index), style = 3)
+  cat("Getting children information\n")
+  for (i in seq(superfams_index)){
+      tax_info2[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[superfams_index[i]], include_children = TRUE),
+        error = function(e) NA)
+      utils::setTxtProgressBar(progression, i)
+  }
+  clean_superfams <- get_valid_children_names(tax_info2)
+  names(clean_superfams)
+  # ranks <- sapply(tax_info2, function(x) sapply(x$children, "[", "rank"))
+  fam_rank_index <- sapply(clean_superfams$ranks, function(x) grep("^family$", x))
+  length(fam_rank_index)
+  # superfams <- sapply(tax_info2, function(x) sapply(x$children, "[", "unique_name"))
+  # superfam_ids <- sapply(tax_info2, function(x) sapply(x$children, "[", "ott_id"))
 
-  for(i in seq(superfams)[sapply(ranks_index, length)>0]){
-      fams[superfams_index[i]][[1]] <- unname(unlist(superfams[[i]][ranks_index[[i]]]))
+  for(i in seq(superfams)[sapply(fam_rank_index, length)>0]){
+      fams[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$unique_names[[i]][fam_rank_index[[i]]]))
+      fam_ids[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$ott_ids[[i]][fam_rank_index[[i]]]))
   }
   all_index <- sapply(nsf_relevant_grants_raw$taxa_ott, match, ott_names)
   # sapply(all_index, length)
@@ -310,50 +333,66 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
     empty <- ott_names[sapply(fams, length) ==0]
     get_ott <- readline(paste0("\nThe following taxa retrieved no OTT families: ", paste0("'", empty, "'"), "\nDo you want to add some: "))
     if(grepl("y", tolower(get_ott))){
-      # external <- vector(mode = "list", length = length(empty))
       empty_index <- which(sapply(fams, length) ==0)
       for (i in seq(empty)){
-        # external[[i]] <- readline(paste0("\nReview the award and provide family names from external data for taxon '", empty[i], "' to match to OTT (hit enter or NA if you have no external data; separate names by comma if multiple; uppercases are ignored): "))
         external <- readline(paste0("\nReview the award and provide family names from external data for taxon '", empty[i], "' to match to OTT (hit enter or NA if you have no external data; separate names by comma if multiple; uppercases are ignored): "))
         external <- unlist(strsplit(external, ","))
         external <- trimws(external)
-        # fams[empty_index[i]] <- NA
-        fams[[empty_index[i]]] <- get_ott_taxa(taxa = external)
+        tax_map_tnrs <- datelife::input_tnrs(input = external)
+        tax_map_tnrs <- clean_tnrs(tnrs = tax_map_tnrs)
+        fams[[empty_index[i]]] <- tax_map_tnrs$unique
+        fam_ids[[empty_index[i]]] <- tax_map_tnrs$ott_id
       }
-      # external <- sapply(external, strsplit, ",") # need to be sapply in here and lapply in the next one
-      # external <- lapply(external, trimws)
-      # ott_fams <- lapply(external, get_ott_taxa)
     }
-    # fams[sapply(fams, length) ==0] <- ott_fams
   }
-  nsf_relevant_grants_raw$fams <- vector(mode = "list", length = length(nsf_relevant_grants_raw$taxa_ott))
+  nsf_relevant_grants_raw$fams <- nsf_relevant_grants_raw$fam_ott_ids <- vector(mode = "list", length = length(nsf_relevant_grants_raw$taxa_ott))
   for (i in seq(all_index)){
     if(length(all_index[[i]][!is.na(all_index[[i]])]) == 0){
       next
     } else {
       ottnames_index <- all_index[[i]][!is.na(all_index[[i]])]
       nsf_relevant_grants_raw$fams[[i]] <- unique(unlist(fams[ottnames_index]))
+      nsf_relevant_grants_raw$fam_ott_ids[[i]] <- unique(unlist(fam_ids[ottnames_index]))
     }
   }
   return(nsf_relevant_grants_raw)
 }
 
-get_ott_taxa <- function(taxa){
-  # add possibility to get families from other taxonomies
-  # taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
-  if(!is.character(taxa)){
-    stop("taxa must be a character vector")
+#' it eliminates unmatched (NAs) and invalid taxa from a tnrs_match_names object
+#' returns a data frame
+clean_tnrs <- function(tnrs){
+  if(!is.data.frame(tnrs)){
+    stop("taxa must be a data.frame from input_tnrs or tnrs_match_names functions")
   }
-  # taxa_tnrs <- suppressWarnings(taxatnrs <- rotl::tnrs_match_names(taxa))
-  # taxa_tnrs <- taxa_tnrs[!is.na(taxa_tnrs$unique),]
-  taxa_tnrs <- datelife::input_tnrs(input = taxa)
-  unvalid <- c("BARREN", "EXTINCT", "UNCULTURED", "CONFLICT", "INCERTAE", "UNPLACED")
-  x <- sapply(unvalid, grepl, taxa_tnrs$flags)
-  if(nrow(taxa_tnrs)==1){
+  # tnrs <- suppressWarnings(taxatnrs <- rotl::tnrs_match_names(taxa))
+  # tnrs <- tnrs[!is.na(tnrs$unique),]
+  # tnrs <- datelife::input_tnrs(input = taxa)
+  invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "CONFLICT", "INCERTAE", "UNPLACED")
+  x <- sapply(invalid, grepl, tnrs$flags)
+  if(nrow(tnrs)==1){
     x <- matrix(x, ncol = 6, dimnames = list(NULL, names(x)))
   }
   x <- sapply(1:nrow(x), function(z) sum(x[z,]))
-  taxa_ott <- unique(taxa_tnrs[x==0, ]$unique_name)
-  taxa_ott <- taxa_ott[!is.na(taxa_ott)]
-  return(unname(taxa_ott))
+  # taxa_ott <- unique(tnrs[x==0, ]$unique_name)
+  # taxa_ott <- taxa_ott[!is.na(taxa_ott)]
+  # return(unname(taxa_ott))
+  tnrs <- tnrs[x==0, ]
+  tnrs <- tnrs[!is.na(tnrs$unique),]
+  return(tnrs)
+}
+
+#' identifies valid children names, ott_ids and ranks from a taxonomy_taxon_info output
+#' returns a list with valid children unique OTT names, ott_ids and ranks
+get_valid_children_names <- function(taxon_info){
+    invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "CONFLICT", "INCERTAE", "UNPLACED")
+    # names(taxon_info[[2]])
+    all_names <- sapply(taxon_info, function(x) sapply(x$children, "[", "unique_name"))
+    all_ids <- sapply(taxon_info, function(x) sapply(x$children, "[", "ott_id"))
+    all_ranks <- sapply(taxon_info, function(x) sapply(x$children, "[", "rank"))
+    all_flags <- sapply(taxon_info, function(x) sapply(sapply(x$children, "[", "flags"), unlist))
+    invalid_index <- lapply(all_flags, function(x) sapply(x, function(y) any(invalid %in% y)))
+    valid_names <- sapply(seq(all_names), function(x) all_names[[x]][!invalid_index[[x]]])
+    valid_ids <- sapply(seq(all_ids), function(x) all_ids[[x]][!invalid_index[[x]]])
+    valid_ranks <- sapply(seq(all_ranks), function(x) all_ranks[[x]][!invalid_index[[x]]])
+    return(list(unique_names = valid_names, ott_ids = valid_ids, ranks = valid_ranks))
 }

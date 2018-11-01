@@ -12,7 +12,7 @@ setwd("/Users/luna/GoogleDrive/lunasare.com/phunding")
 
 devtools::use_readme_md()
 devtools::use_data_raw()
-# move this file to data-raw dir
+# move this R file to data-raw dir
 # download data from rnsf package to data-raw dir for now
 load("data-raw/grants.rda")
 devtools::load_all()
@@ -40,7 +40,10 @@ devtools::check() # passed with 1 warning and 3 notes
 devtools::test() # this one is not passing for some reason
 # curate nsf_relevant_grants_raw with clean_funded_taxa
 devtools::load_all()
+nsf_relevant_grants_raw <- get_funded_taxa()
+use_data("nsf_relevant_grants_raw")
 utils::data(nsf_relevant_grants_raw)
+names(nsf_relevant_grants_raw)
 nsf_relevant_grants_c1 <- clean_unmapped_taxa()
 unique(unlist(nsf_relevant_grants_c1$taxa_correct))
 names(nsf_relevant_grants_c1)
@@ -53,11 +56,14 @@ taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
 # Cottoidea is not found on any taxonomy (tried itis, col, gbif and ncbi)
 # so I gathered the info available in wikipedia. It referenced Nelson 2006 fishes of the world
 # so I compilated families from two editions and matched to tnrs
-cott <- get_ott_taxa(taxa = tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
+cott <- clean_tnrs(taxa = tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
   "Ereuniidae", "Hemitripteridae", "JORDANIIDAE", "RHAMPHOCOTTIDAE",
   "SCORPAENICHTHYIDAE", "AGONIDAE", "COTTIDAE", "PSYCHROLUTIDAE", "BATHYLUTICHTHYIDAE")))
-paste(cott, collapse = ",")
+paste(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
+  "Ereuniidae", "Hemitripteridae", "JORDANIIDAE", "RHAMPHOCOTTIDAE",
+  "SCORPAENICHTHYIDAE", "AGONIDAE", "COTTIDAE", "PSYCHROLUTIDAE", "BATHYLUTICHTHYIDAE"), collapse = ",")
 #Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae
+#Abyssocottidae,Comephoridae,Cottocomephoridae,Ereuniidae,Hemitripteridae,JORDANIIDAE,RHAMPHOCOTTIDAE,SCORPAENICHTHYIDAE,AGONIDAE,COTTIDAE,PSYCHROLUTIDAE,BATHYLUTICHTHYIDAE
 nsf_relevant_grants_raw <- nsf_relevant_grants_c1
 unique(unlist(nsf_relevant_grants_c2$taxa_correct))
 nsf_relevant_grants_c3 <- clean_synonym_taxa(nsf_relevant_grants_c2)
@@ -77,12 +83,19 @@ taxa <- tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
 external[[1]] <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
 external <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
 nsf_relevant_grants <- get_ott_families(nsf_relevant_grants_c4)
-nsf_relevant_grants$fams
+unlist(nsf_relevant_grants$fam_ott_ids)
+usethis::use_data(nsf_relevant_grants, overwrite = TRUE)
 # get money per family
-fams_funds <- get_funds()
+fam_funds <- get_funds()
 sapply("Nileidae", grep, nsf_relevant_grants$fams)
-# get the family tree of Life
-devtools::use_package("datelife")
+grep("Nileid", unlist(nsf_relevant_grants$fams))
+usethis::use_data(fam_funds)
+
+# get the dated family tree of Life
+# devtools::use_package("datelife")
+usethis::use_package("datelife")
+
+
 # map tips to the Tree
 
 # # add documentation for the package as a whole
