@@ -83,13 +83,36 @@ taxa <- tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
 external[[1]] <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
 external <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
 nsf_relevant_grants <- get_ott_families(nsf_relevant_grants_c4)
+# nudibranchia
+nudincbi <- taxize::downstream("Nudibranchia", downto = "family", db = "ncbi")
+nuditis <- taxize::downstream("Nudibranchia", downto = "family", db = "itis")
+nudicol <- taxize::downstream("Nudibranchia", downto = "family", db = "col")
+nudigbif <- taxize::downstream("Nudibranchia", downto = "family", db = "gbif")
+nudifam <- unique(c(nudincbi[[1]]$childtaxa_name, nuditis[[1]]$taxonname,
+    nudicol[[1]]$childtaxa_name, nudigbif[[1]]$name))
+nudifam <- nudifam[!is.na(nudifam)]
+paste(nudifam, collapse = ",")
+#Curnonidae,Dironidae,Doridoxidae,Apataidae,Samlidae,Paracoryphellidae,Coryphellidae,
+Notaeolidiidae,Flabellinidae,Cuthonidae,Calmidae,Cuthonellidae,Trinchesiidae,Fionidae,
+Phylliroidae,Aranucidae,Scyllaeidae,Lomanotidae,Hancockiidae,Tethydidae,Bornellidae,Dotidae,
+Dendronotidae,Tritoniidae,Unidentiidae,Facelinidae,Piseinotecidae,Glaucidae,Aeolidiidae,
+Arminidae,Okadaiidae,Gymnodorididae,Mandeliidae,Akiodorididae,Aegiretidae,Polyceridae,
+Goniodorididae,Onchidorididae,Bathydoridae,Conualeviidae,Actinocyclidae,Platydorididae,
+Asteronotidae,Hexabranchidae,Dorididae,Phyllidiidae,Kentrodorididae,Dendrodorididae,
+Chromodorididae,Discodorididae,Charcotiidae,Zephyrinidae,Heroidae,Rostangidae,Dotoidae,
+Aegiridae,Aldisidae,Archidorididae,Triophidae,Corambidae,Vayssiereidae,Janolidae,
+Cumanotidae,Eubranchidae,Tergipedidae,Babakinidae,Bathydorididae,Halgerdidae,Calycidorididae,
+Heterodorididae,Doridoeididae,Antiopellidae,Madrellidae,Gonieolididae,Pseudovermidae,Favorinidae,
+Myrrhinidae,Spurillidae,Embletoniidae,Goniaeolididae,Not assigned,Pinufiidae,Pleurolidiidae,
+Doridomorphidae,Cadlinidae,Abronicidae,Murmaniidae,Flabellinopsidae,Lemindidae,Proctonotidae,
+Aeolididae,Rhodopidae
 unlist(nsf_relevant_grants$fam_ott_ids)
 usethis::use_data(nsf_relevant_grants, overwrite = TRUE)
 # get money per family
 fam_funds <- get_funds()
 sapply("Nileidae", grep, nsf_relevant_grants$fams)
 grep("Nileid", unlist(nsf_relevant_grants$fams))
-usethis::use_data(fam_funds)
+usethis::use_data(fam_funds, overwrite = TRUE)
 
 # get the dated family tree of Life
 # devtools::use_package("datelife")

@@ -16,11 +16,30 @@ utils::data(fams_funds)
 utils::data(fam_tree)
 fam_tree$tip.label
 fam_tree$ott_id
-names(fams_funds)
-gg <- sapply(paste0("^", tolower(names(fams_funds))), grep, tolower(fam_tree$tip.label))
+fam_tree$ott_name
+fam_tree$tip.label <- fam_tree$ott_id
+names(fam_tree)
+names(fam_funds$funds)
+gg <- sapply(tolower(names(fam_funds$funds)), grep, tolower(fam_tree$tip.label))
+length(gg)
 length(gg[sapply(gg, length) >0])
-gg[sapply(gg, length) >0]
+prob <- as.numeric(gsub("ott", "", names(gg[!sapply(gg, length) >0])))
 funded_tips <- match(unique(unlist(nsf_relevant_grants$fams)), fam_tree$tip.label)
+fam_tree2 <- rotl::tol_induced_subtree(ott_id=as.numeric(gsub("ott", "", names(fam_funds$funds))), label_format = "id")
+
+prob_info <- rotl::taxonomy_taxon_info(prob)
+sapply(prob_info, "[", "flags")
+rotl::tnrs_match_names("nudbranchia")
+grep("76753", fam_tree$node.lab)
+fam_tree$node.label[grep("nudibranchia", tolower(fam_tree$node.lab))]
+phylobase::descendants(fam_tree, 1037+ape::Ntip(fam_tree), type = "tips")
+# the above did not work
+head(fam_tree$edge)
+# but the node has descendants alright:
+any(fam_tree$edge[,1] == 1037+ape::Ntip(fam_tree))
+# so trying another function
+tt <- phytools::getDescendants(fam_tree, 1037+ape::Ntip(fam_tree))
+fam_tree$tip.label[tt[tt<ape::Ntip(fam_tree)]]
 
 
 all_fams_funds <- rep(0, length(fam_tree$tip.label))

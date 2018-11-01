@@ -13,20 +13,11 @@ vector_names <- function(all){ # change to vector_grant_taxa
 clean_unmapped_taxa <- function(){
     utils::data("nsf_relevant_grants_raw")
     nsf_relevant_grants_raw$taxa_correct <- nsf_relevant_grants_raw$taxa_low <- sapply(nsf_relevant_grants_raw$taxa, tolower)
-    # replace_names <- function(i,j){
-    #     if(length(nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]) > 1){
-    #         unmapped_i <- unmapped[i] == nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]
-    #         nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]][unmapped_i] <- unmapped_correct[[i]]
-    #     } else {
-    #         nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]] <- unmapped_correct[[i]]
-    #     }
-    # }
     unique_names1 <- vector_names(nsf_relevant_grants_raw$taxa)
     unique_names <- vector_names(nsf_relevant_grants_raw$taxa_low)
     # 0. map names to ott with tnrs:
     tax_map_tnrs <- suppressWarnings(rotl::tnrs_match_names(unique_names))
     # I. find, check and correct tnrs unmapped names (NA in unique)
-    # unmapped1 <- unique_names1[is.na(tax_map_tnrs$unique)]
     unmapped <- unique_names[is.na(tax_map_tnrs$unique)]
     while(length(unmapped)>0){
         cat("The following taxa extracted from grants do not match ott.\n", paste0("'", unmapped, "' "), "\n\n",
@@ -40,7 +31,6 @@ clean_unmapped_taxa <- function(){
             cat("Award Abstract:\n", unique(unlist(nsf_relevant_grants_raw$abstract[unmapped_index[[i]]])), "\n")
             unmapped_correct[i] <- readline(paste0("\nReview the award and give a valid ott name for' ", unmapped[i], "' (NA if it is not a taxon name; separated by comma if multiple names; uppercases are ignored): "))
         }
-        # unmapped_correct <- c(rep(list("NA"),4), list("ploceus"), list("chrysochus, apocynaceae"))
         if(any(sapply(unmapped_correct, function(x)any(x == "")))){
           unmapped <- unmapped[sapply(unmapped_correct, function(x)any(x != ""))]
           unmapped_index <- sapply(unmapped, grep, nsf_relevant_grants_raw$taxa_correct)
@@ -50,39 +40,17 @@ clean_unmapped_taxa <- function(){
         unmapped_correct <- sapply(unmapped_correct, trimws)
         for(i in seq(unmapped_index)){
           for(j in seq(length(unmapped_index[[i]]))){
-              # if(length(nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]) > 1){
                   unmapped_i <- unmapped[i] == nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]
                   nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]][unmapped_i] <- NA
                   all_correct <- unique(c(nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]], unmapped_correct[[i]]))
                   all_correct <- all_correct[all_correct != "NA"]
                   nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]] <- all_correct
           }
-            # if(length(unmapped_index[[i]]) == 1){
-            #     # replace_names(i, j =1)
-            #     j <- 1
-            #     if(length(nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]) > 1){
-            #         unmapped_i <- unmapped[i] == nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]
-            #         nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]][unmapped_i] <- unmapped_correct[[i]]
-            #     } else {
-            #         nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]] <- unmapped_correct[[i]]
-            #     }
-            # } else {
-            #     for(j in seq(length(unmapped_index[[i]]))){
-            #         # replace_names(i, j)
-            #         if(length(nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]) > 1){
-            #             unmapped_i <- unmapped[i] == nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]]
-            #             nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]][unmapped_i] <- unmapped_correct[[i]]
-            #         } else {
-            #             nsf_relevant_grants_raw$taxa_correct[[unmapped_index[[i]][j]]] <- unmapped_correct[[i]]
-            #         }
-            #     }
-            # }
         }
         unmapped_correct <- unique(unlist(unmapped_correct))
         unmapped_correct <- unmapped_correct[!is.na(unmapped_correct)]
         unmapped_correct <- unmapped_correct[unmapped_correct != "NA"]
         unmapped_tnrs <- suppressWarnings(rotl::tnrs_match_names(unmapped_correct))
-        # II. find, check and correct tnrs unmapped names (NA in unique)
         unmapped <- unmapped[is.na(unmapped_tnrs$unique)]
     }
     return(nsf_relevant_grants_raw)
@@ -94,19 +62,16 @@ clean_approximated_taxa <- function(nsf_relevant_grants_raw){
     approxed <- tax_map_tnrs$search[tax_map_tnrs$approx]
     approxed_index <- sapply(approxed, grep, tolower(nsf_relevant_grants_raw$taxa_correct))
     approxed2 <- tax_map_tnrs$unique[tax_map_tnrs$approx]
-    # approxed <- approxed[!is.na(approxed)]
     cat("\n\n\nThe following taxa in grants match ott approximately:\n", paste0("'", unique(unlist(approxed)), "' "), "\n",
         "Review the grant on screen and submit a valid ott name, NA if it is not a taxon name, or hit enter if the original name is correct.\n\n")
     approxed_correct <- vector(mode = "list", length = length(approxed))
     for(i in seq(approxed)){
-        # if(i==0) i <- 1
         cat("OTT approximated name:\n", approxed[i], " to ", approxed2[i], "\n")
         cat("Award Title:\n", nsf_relevant_grants_raw$title[approxed_index[[i]]], "\n")
         cat("All names found in award:\n", paste0("'", unique(unlist(nsf_relevant_grants_raw$taxa_correct[approxed_index[[i]]])), "' "), "\n")
         cat("Award Abstract:\n", nsf_relevant_grants_raw$abstract[approxed_index[[i]]], "\n")
         approxed_correct[i] <- readline(paste0("\nReview the award and give a valid ott name for '", approxed[i], "' (hit enter if the name is correct; NA if it is not a taxon name; separated by comma if multiple names; uppercases are ignored): "))
     }
-    # approxed_correct <- c(list(""), list("salvia"), rep(list("NA"),3))
     if(any(sapply(approxed_correct, function(x)any(x == "")))){
         approxed <- approxed[sapply(approxed_correct, function(x)any(x != ""))]
         approxed_index <- sapply(approxed, grep, nsf_relevant_grants_raw$taxa_correct)
@@ -114,30 +79,14 @@ clean_approximated_taxa <- function(nsf_relevant_grants_raw){
     }
     approxed_correct <- sapply(approxed_correct, strsplit, ",")
     approxed_correct <- lapply(approxed_correct, trimws)
-    # sapply(test, function(x)any(x == "")) & sapply(test, function(x) length(x) == 1)
     for(i in seq(approxed)){
-        # if(length(approxed_index[[i]]) == 1){
-        #     j <- 1
-        #     if(length(nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]]) > 1){
-        #         approxed_i <- approxed[i] == nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]]
-        #         nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]][approxed_i] <- approxed_correct[[i]]
-        #     } else {
-        #         nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]]]] <- NA
-        #         nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]] <- approxed_correct[[i]]
-        #     }
-        # } else {
             for(j in seq(length(approxed_index[[i]]))){
-                # if(length(nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]]) > 1){
                     approxed_i <- approxed[i] == nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]]
                     nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]][approxed_i] <- NA
                     all_correct <- unique(c(nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]], approxed_correct[[i]]))
                     all_correct <- all_correct[all_correct != "NA"]
                     nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]] <- all_correct
-                # } else {
-                #     nsf_relevant_grants_raw$taxa_correct[[approxed_index[[i]][j]]] <- approxed_correct[[i]]
-                # }
             }
-        # }
     }
     return(nsf_relevant_grants_raw)
 }
@@ -163,25 +112,8 @@ clean_synonym_taxa <- function(nsf_relevant_grants_raw){
     syn_correct[sapply(syn_correct, function(x)any(x == ""))] <- syn2[sapply(syn_correct, function(x)any(x == ""))]
     syn_index <- sapply(syn, grep, nsf_relevant_grants_raw$taxa_correct)
     for(i in seq(syn_index)){
-        # if(length(syn_index[[i]]) == 1){
-        #     # replace_names(i, j =1)
-        #     j <- 1
-        #     if(length(nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]]) > 1){
-        #         syn_i <- syn[i] == nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]]
-        #         if(syn_correct[[i]] == "NA"){
-        #             nsf_relevant_grants_raw$taxa_correct[[syn_index[[i]][j]]][syn_i] <- syn_correct[[i]]
-        #         }
-        #         nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]][syn_i] <- syn_correct[[i]]
-        #     } else {
-        #         if(syn_correct[[i]] == "NA"){
-        #             nsf_relevant_grants_raw$taxa_correct[[syn_index[[i]][j]]] <- syn_correct[[i]]
-        #         }
-        #         nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]] <- syn_correct[[i]]
-        #     }
-        # } else {
+
             for(j in seq(length(syn_index[[i]]))){
-                # replace_names(i, j)
-                # if(length(nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]]) > 1){
                     syn_i <- syn[i] == nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]]
                     if(syn_correct[[i]] == "NA"){
                         nsf_relevant_grants_raw$taxa_correct[[syn_index[[i]][j]]][syn_i] <- NA
@@ -189,14 +121,7 @@ clean_synonym_taxa <- function(nsf_relevant_grants_raw){
                     } else {
                         nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]][syn_i] <- syn_correct[[i]]
                     }
-                # } else {
-                #     if(syn_correct[[i]] == "NA"){
-                #         nsf_relevant_grants_raw$taxa_correct[[syn_index[[i]][j]]] <- syn_correct[[i]]
-                #     }
-                #     nsf_relevant_grants_raw$taxa_ott[[syn_index[[i]][j]]] <- syn_correct[[i]]
-                # }
             }
-        # }
     }
     return(nsf_relevant_grants_raw)
 }
@@ -231,22 +156,8 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
   }
   taxa_correct <- sapply(taxa_correct, strsplit, ",")
   taxa_correct <- lapply(taxa_correct, trimws)
-
-  # sapply(test, function(x)any(x == "")) & sapply(test, function(x) length(x) == 1)
   for(i in seq(taxa)){
-      # if(length(taxa_index[[i]]) == 1){
-      #     j <- 1
-      #     if(length(nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]]) > 1){
-      #         taxa_i <- taxa[i] == nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]]
-      #         nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]][taxa_i] <- taxa_correct[[i]]
-      #         nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]][taxa_i] <- taxa_correct[[i]]
-      #     } else {
-      #         nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]] <- taxa_correct[[i]]
-      #         nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]] <- taxa_correct[[i]]
-      #     }
-      # } else {
           for(j in seq(length(taxa_index[[i]]))){
-              # if(length(nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]]) > 1){
                   taxa_i <- taxa[i] == nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]]
                   nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]][taxa_i] <- NA
                   nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]][taxa_i] <- NA
@@ -254,12 +165,7 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
                   all_correct <- all_correct[all_correct != "NA"]
                   nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]] <- all_correct
                   nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]] <- all_correct
-              # } else {
-              #     nsf_relevant_grants_raw$taxa_correct[[taxa_index[[i]][j]]] <- taxa_correct[[i]]
-              #     nsf_relevant_grants_raw$taxa_ott[[taxa_index[[i]][j]]] <- taxa_correct[[i]]
-              # }
           }
-      # }
   }
   return(nsf_relevant_grants_raw)
 }
@@ -276,7 +182,6 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
   tax_info <- fam_ids <- fams <- vector(mode = "list", length = length(ott_names))
   names(tax_info) <- names(fams) <- ott_names
   progression <- utils::txtProgressBar(min = 0, max = length(tax_info), style = 3)
-  cat("Getting lineage information\n")
   for (i in seq(tax_info)){
       tax_info[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[i], include_lineage = TRUE),
         error = function(e) NA)
@@ -301,41 +206,30 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
       error = function(e) NA)
       return(lin)
   })
-  # tt <- rotl::taxonomy_taxon_info(unique(unlist(fam_ids[c(subfams_index, fams_index)])))
-  # length(tt)
-  # names(tt[[1]])
-  # sapply(tt, "[", "fags") # they are all clean
   superfams_index <- sort(unname(unlist(sapply(c("phylum", "domain", "class", "order", "superfamily"), grep, tax_map_tnrs$rank))))
   tax_info2 <- vector(mode = "list", length = length(superfams_index))
   progression <- utils::txtProgressBar(min = 0, max = length(superfams_index), style = 3)
-  cat("Getting children information\n")
   for (i in seq(superfams_index)){
       tax_info2[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[superfams_index[i]], include_children = TRUE),
         error = function(e) NA)
       utils::setTxtProgressBar(progression, i)
   }
   clean_superfams <- get_valid_children_names(tax_info2)
-  names(clean_superfams)
-  # ranks <- sapply(tax_info2, function(x) sapply(x$children, "[", "rank"))
   fam_rank_index <- sapply(clean_superfams$ranks, function(x) grep("^family$", x))
-  length(fam_rank_index)
-  # superfams <- sapply(tax_info2, function(x) sapply(x$children, "[", "unique_name"))
-  # superfam_ids <- sapply(tax_info2, function(x) sapply(x$children, "[", "ott_id"))
 
   for(i in seq(superfams)[sapply(fam_rank_index, length)>0]){
       fams[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$unique_names[[i]][fam_rank_index[[i]]]))
       fam_ids[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$ott_ids[[i]][fam_rank_index[[i]]]))
   }
   all_index <- sapply(nsf_relevant_grants_raw$taxa_ott, match, ott_names)
-  # sapply(all_index, length)
-  # nsf_relevant_grants_raw$taxa_ott[253]
   if(any(sapply(fams, length) ==0)){
     empty <- ott_names[sapply(fams, length) ==0]
-    get_ott <- readline(paste0("\nThe following taxa retrieved no OTT families: ", paste0("'", empty, "'"), "\nDo you want to add some: "))
+    empties <- paste0("'", empty, "'", collapse = " ")
+    get_ott <- readline(paste0("\nThe following taxa retrieved no OTT families: ", empties, "\nDo you want to add some: "))
     if(grepl("y", tolower(get_ott))){
       empty_index <- which(sapply(fams, length) ==0)
       for (i in seq(empty)){
-        external <- readline(paste0("\nReview the award and provide family names from external data for taxon '", empty[i], "' to match to OTT (hit enter or NA if you have no external data; separate names by comma if multiple; uppercases are ignored): "))
+        external <- readline(paste0("\nProvide family names from external data for taxon '", empty[i], "' to match to OTT (hit enter or NA if you have no external data; separate names by comma if multiple; uppercases are ignored): "))
         external <- unlist(strsplit(external, ","))
         external <- trimws(external)
         tax_map_tnrs <- datelife::input_tnrs(input = external)
@@ -364,18 +258,12 @@ clean_tnrs <- function(tnrs){
   if(!is.data.frame(tnrs)){
     stop("taxa must be a data.frame from input_tnrs or tnrs_match_names functions")
   }
-  # tnrs <- suppressWarnings(taxatnrs <- rotl::tnrs_match_names(taxa))
-  # tnrs <- tnrs[!is.na(tnrs$unique),]
-  # tnrs <- datelife::input_tnrs(input = taxa)
-  invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "CONFLICT", "INCERTAE", "UNPLACED")
+  invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "MAJOR_RANK_CONFLICT", "INCERTAE", "UNPLACED", "CONFLICT")
   x <- sapply(invalid, grepl, tnrs$flags)
   if(nrow(tnrs)==1){
     x <- matrix(x, ncol = 6, dimnames = list(NULL, names(x)))
   }
   x <- sapply(1:nrow(x), function(z) sum(x[z,]))
-  # taxa_ott <- unique(tnrs[x==0, ]$unique_name)
-  # taxa_ott <- taxa_ott[!is.na(taxa_ott)]
-  # return(unname(taxa_ott))
   tnrs <- tnrs[x==0, ]
   tnrs <- tnrs[!is.na(tnrs$unique),]
   return(tnrs)
@@ -384,7 +272,7 @@ clean_tnrs <- function(tnrs){
 #' identifies valid children names, ott_ids and ranks from a taxonomy_taxon_info output
 #' returns a list with valid children unique OTT names, ott_ids and ranks
 get_valid_children_names <- function(taxon_info){
-    invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "CONFLICT", "INCERTAE", "UNPLACED")
+    invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "MAJOR_RANK_CONFLICT", "INCERTAE", "UNPLACED", "CONFLICT")
     # names(taxon_info[[2]])
     all_names <- sapply(taxon_info, function(x) sapply(x$children, "[", "unique_name"))
     all_ids <- sapply(taxon_info, function(x) sapply(x$children, "[", "ott_id"))
