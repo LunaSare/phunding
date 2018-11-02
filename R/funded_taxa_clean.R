@@ -169,18 +169,21 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
   }
   return(nsf_relevant_grants_raw)
 }
-get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
+get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree = NULL){
     # enhancement: add possibility to get families from other taxonomies
     # e.g., taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
   if(is.null(nsf_relevant_grants_raw)){
-      ott_names <- taxa
+      ott_names <- tolower(taxa)
   } else {
-      ott_names <- vector_names(nsf_relevant_grants_raw$taxa_ott)
+      ott_names <- tolower(vector_names(nsf_relevant_grants_raw$taxa_ott))
+  }
+  if(is.null(tree)){
+      utils::data(fam_tree)
   }
   # tax_map_tnrs <- rotl::tnrs_match_names(ott_names)
   tax_map_tnrs <- datelife::input_tnrs(input = ott_names)
   tax_info <- fam_ids <- fams <- vector(mode = "list", length = length(ott_names))
-  names(tax_info) <- names(fams) <- ott_names
+  names(tax_info) <- names(fams) <- names(fam_ids) <- ott_names
   progression <- utils::txtProgressBar(min = 0, max = length(tax_info), style = 3)
   for (i in seq(tax_info)){
       tax_info[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[i], include_lineage = TRUE),
@@ -207,19 +210,31 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL){
       return(lin)
   })
   superfams_index <- sort(unname(unlist(sapply(c("phylum", "domain", "class", "order", "superfamily"), grep, tax_map_tnrs$rank))))
-  tax_info2 <- vector(mode = "list", length = length(superfams_index))
-  progression <- utils::txtProgressBar(min = 0, max = length(superfams_index), style = 3)
-  for (i in seq(superfams_index)){
-      tax_info2[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[superfams_index[i]], include_children = TRUE),
-        error = function(e) NA)
-      utils::setTxtProgressBar(progression, i)
-  }
-  clean_superfams <- get_valid_children_names(tax_info2)
-  fam_rank_index <- sapply(clean_superfams$ranks, function(x) grep("^family$", x))
-
-  for(i in seq(superfams)[sapply(fam_rank_index, length)>0]){
-      fams[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$unique_names[[i]][fam_rank_index[[i]]]))
-      fam_ids[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$ott_ids[[i]][fam_rank_index[[i]]]))
+  # tax_info2 <- vector(mode = "list", length = length(superfams_index))
+  # progression <- utils::txtProgressBar(min = 0, max = length(superfams_index), style = 3)
+  # for (i in seq(superfams_index)){
+  #     tax_info2[i] <- tryCatch(rotl::taxonomy_taxon_info(tax_map_tnrs$ott_id[superfams_index[i]], include_children = TRUE),
+  #       error = function(e) NA)
+  #     utils::setTxtProgressBar(progression, i)
+  # }
+  # clean_superfams <- get_valid_children_names(tax_info2)
+  # fam_rank_index <- sapply(clean_superfams$ranks, function(x) grep("^family$", x))
+  #
+  # for(i in seq(superfams)[sapply(fam_rank_index, length)>0]){
+  #     fams[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$unique_names[[i]][fam_rank_index[[i]]]))
+  #     fam_ids[superfams_index[i]][[1]] <- unname(unlist(clean_superfams$ott_ids[[i]][fam_rank_index[[i]]]))
+  # }
+  nodes <- sapply(as.character(tax_map_tnrs$unique_name[superfams_index]), grep, fam_tree$node.label)
+  ff <- sapply(unlist(nodes)+ape::Ntip(fam_tree), function(x) {
+      tt <- phytools::getDescendants(fam_tree, x)
+      ii <- fam_tree$ott_ids[tt[tt < ape::Ntip(fam_tree)]]
+      names(ii) <- fam_tree$ott_names[tt[tt < ape::Ntip(fam_tree)]]
+      ii
+  })
+  names(ff) <- tolower(names(ff))
+  for(i in names(ff)){
+      fams[[i]] <- names(ff[[i]])
+      fam_ids[[i]] <- unname(ff[[i]])
   }
   all_index <- sapply(nsf_relevant_grants_raw$taxa_ott, match, ott_names)
   if(any(sapply(fams, length) ==0)){
