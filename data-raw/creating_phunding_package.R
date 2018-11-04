@@ -75,6 +75,7 @@ unique(unlist(nsf_relevant_grants_c4$taxa_ott))
 unique(unlist(nsf_relevant_grants_raw$taxa_correct))
 head(tax_map_tnrs)
 nsf_relevant_grants_raw <- nsf_relevant_grants_c4
+usethis::use_data(nsf_relevant_grants_c4)
 # add_ott_families tests
 tax_info[[i]]$lineage[grep("^family$", sapply(tax_info[[i]]$lineage, "[", "rank"))][[1]]$unique_name
 taxa <- tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
@@ -82,6 +83,7 @@ taxa <- tolower(c("Abyssocottidae", "Comephoridae", "Cottocomephoridae",
 "SCORPAENICHTHYIDAE", "AGONIDAE", "COTTIDAE", "PSYCHROLUTIDAE", "BATHYLUTICHTHYIDAE"))
 external[[1]] <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
 external <- "Cottidae,Ereuniidae,Jordaniidae,Rhamphocottidae,Agonidae,Psychrolutidae"
+load("data-raw/nsf_relevant_grants_c4.rda")
 nsf_relevant_grants <- get_ott_families(nsf_relevant_grants_c4)
 # nudibranchia
 nudincbi <- taxize::downstream("Nudibranchia", downto = "family", db = "ncbi")
@@ -92,12 +94,15 @@ nudifam <- unique(c(nudincbi[[1]]$childtaxa_name, nuditis[[1]]$taxonname,
     nudicol[[1]]$childtaxa_name, nudigbif[[1]]$name))
 nudifam <- nudifam[!is.na(nudifam)]
 paste(nudifam, collapse = ",")
-unlist(nsf_relevant_grants$fam_ott_ids)
+unique(unlist(nsf_relevant_grants$fam_ott_ids))
 usethis::use_data(nsf_relevant_grants, overwrite = TRUE)
 # get money per family
-fam_funds <- get_funds()
+fam_funds <- get_funds(nsf_relevant_grants)
 sapply("Nileidae", grep, nsf_relevant_grants$fams)
 grep("Nileid", unlist(nsf_relevant_grants$fams))
+names(fam_funds)
+sapply(fam_funds, length)
+class(fam_funds$funds)
 usethis::use_data(fam_funds, overwrite = TRUE)
 
 # get the dated family tree of Life

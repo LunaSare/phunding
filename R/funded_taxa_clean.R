@@ -196,7 +196,7 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree =
 
   fams_index <- grep("^family$", tax_map_tnrs$rank)
   fams[fams_index] <- tax_map_tnrs$unique[fams_index]
-  fam_ids[fams_index] <- tax_map_tnrs$ott_id[fams_index]
+  fam_ids[fams_index] <- paste0("ott", tax_map_tnrs$ott_id[fams_index])
 
   subfams_index <- sort(unname(unlist(sapply(c("species", "genus", "subfamily"), grep, tax_map_tnrs$rank))))
   fams[subfams_index] <- sapply(tax_info[subfams_index], function(x) {
@@ -205,7 +205,7 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree =
       return(lin)
   })
   fam_ids[subfams_index] <- sapply(tax_info[subfams_index], function(x) {
-      lin <- tryCatch(x$lineage[grep("^family$", sapply(x$lineage, "[", "rank"))][[1]]$ott_id,
+      lin <- tryCatch(paste0("ott", x$lineage[grep("^family$", sapply(x$lineage, "[", "rank"))][[1]]$ott_id),
       error = function(e) NA)
       return(lin)
   })
@@ -227,12 +227,12 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree =
   nodes <- sapply(as.character(tax_map_tnrs$unique_name[superfams_index]), grep, fam_tree$node.label)
   ff <- sapply(unlist(nodes)+ape::Ntip(fam_tree), function(x) {
       tt <- phytools::getDescendants(fam_tree, x)
-      ii <- fam_tree$ott_ids[tt[tt < ape::Ntip(fam_tree)]]
-      names(ii) <- fam_tree$ott_names[tt[tt < ape::Ntip(fam_tree)]]
+      ii <- fam_tree$ott_ids[tt[tt <= ape::Ntip(fam_tree)]]
+      names(ii) <- fam_tree$ott_names[tt[tt <= ape::Ntip(fam_tree)]]
       ii
   })
   names(ff) <- tolower(names(ff))
-  for(i in names(ff)){
+  for(i in tolower(names(ff))){
       fams[[i]] <- names(ff[[i]])
       fam_ids[[i]] <- unname(ff[[i]])
   }
@@ -250,10 +250,11 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree =
         tax_map_tnrs <- datelife::input_tnrs(input = external)
         tax_map_tnrs <- clean_tnrs(tnrs = tax_map_tnrs)
         fams[[empty_index[i]]] <- tax_map_tnrs$unique
-        fam_ids[[empty_index[i]]] <- tax_map_tnrs$ott_id
+        fam_ids[[empty_index[i]]] <- paste0("ott", tax_map_tnrs$ott_id)
       }
     }
   }
+  ## now add new data to the grants object:
   nsf_relevant_grants_raw$fams <- nsf_relevant_grants_raw$fam_ott_ids <- vector(mode = "list", length = length(nsf_relevant_grants_raw$taxa_ott))
   for (i in seq(all_index)){
     if(length(all_index[[i]][!is.na(all_index[[i]])]) == 0){

@@ -3,8 +3,8 @@
 
 get_otol_family_tree <- function(){
     utils::data(all_ott_fams)
-    fam_tree <- rotl::tol_induced_subtree(ott_id=all_ott_fams$ott_id, label_format = "name")
-    fam_tree$ott_ids <- rotl::tol_induced_subtree(ott_id=all_ott_fams$ott_id, label_format = "id")$tip.label
+    fam_tree <- suppressWarnings(rotl::tol_induced_subtree(ott_id=all_ott_fams$ott_id, label_format = "name"))
+    fam_tree$ott_ids <- suppressWarnings(rotl::tol_induced_subtree(ott_id=all_ott_fams$ott_id, label_format = "id")$tip.label)
     # mrca <- grepl("mrcaott", fam_tree$tip.label)
     # fam_tree <- ape::drop.tip(fam_tree, fam_tree$tip.label[mrca])
     fam_tree$ott_names <- fam_tree$tip.label
