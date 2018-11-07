@@ -28,9 +28,9 @@ sum_tips <-  function(tree, values) {
     res[1:ape::Ntip(tree)] <- values[match(names(values), tree$tip.label)]
     for (i in ape::postorder(tree))  { # ape postorder doesn't include root
          tmp <- tree$edge[i,1]
-         print(i)
+         # print(i)
          res[tmp] <- res[tmp] + res[tree$edge[i, 2]]
-         print(res)
+         # print(res)
    }
    res
 }
