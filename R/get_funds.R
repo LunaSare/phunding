@@ -19,14 +19,18 @@ get_funds <- function(data = nsf_relevant_grants){
 
 #' Sum of tip values for all nodes in a given tree
 #' It is used to get total fundings for each node, but can be used to sum up any tip value
-#' @param values A named numeric vector. Names must match tip lables from tree.
+#' @param values A named numeric vector. Names must match tip labels from tree.
+# could add option later for taking values in the order of tips, in case users want it like that.
 #' @example
 sum_tips <-  function(tree, values) {
+    # tree <- ape::reorder.phylo(tree, "postorder")  # no need to reorder the whole tree
     res <- numeric(max(tree$edge))
     res[1:ape::Ntip(tree)] <- values[match(names(values), tree$tip.label)]
-    for (i in ape::postorder(tree)) {
-       tmp <- tree$edge[i,1]
-       res[tmp] <- res[tmp] + res[tree$edge[i, 2]]
+    for (i in ape::postorder(tree))  { # ape postorder doesn't include root
+         tmp <- tree$edge[i,1]
+         print(i)
+         res[tmp] <- res[tmp] + res[tree$edge[i, 2]]
+         print(res)
    }
    res
 }
