@@ -59,10 +59,10 @@ tips2 <- unique(tips[!grepl("Original label", tips)])
 length(tips2) # 169581, 86164
 sample(unname(tips2), 100)
 input <- ott_names <- tips2
-# input_tnrs has to call OT api 345 times
-tax_map_tnrs <- datelife::input_tnrs(input = ott_names[1:750])
-tax_map_tnrs <- datelife::input_tnrs(input = ott_names)
-# getting an error, so running input_tnrs here:
+# batch_tnrs_match_names has to call OT api 345 times
+tax_map_tnrs <- datelife::batch_tnrs_match_names(names = ott_names[1:750])
+tax_map_tnrs <- datelife::batch_tnrs_match_names(names = ott_names)
+# getting an error, so running batch_tnrs_match_names here:
 dd <- suppressWarnings(rotl::tnrs_match_names(names = "Apis mellifera"))
 dd <- dd[nrow(dd)+1, ]
 dd[nrow(dd)+length(input), ] <- NA
