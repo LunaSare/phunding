@@ -409,7 +409,7 @@ get_ott_children <- function(input = c("Felis", "Homo", "Malvaceae"), ott_id = N
         vv <- get_valid_children(ott_id = input_ott_match[i])
         success <- vv[[1]]$children$rank == ott_rank | vv[[1]]$is_monotypic
         if(any(success)){
-          mm <- rbind(mm, vv[[i]]$children[success,])
+          mm <- rbind(mm, vv[[1]]$children[success,])
         }
         while(!all(success)){
           vv <- get_valid_children(ott_id = unlist(sapply(sapply(vv, "[", "children"), "[", "ott_id"))[!success])
