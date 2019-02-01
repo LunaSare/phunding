@@ -17,11 +17,25 @@ get_funds <- function(data = nsf_relevant_grants){
     return(list(funds = fam_ott_ids_funds, ott_names = fams))
 }
 
-#' Sum of tip values for all nodes in a given tree
-#' It is used to get total fundings for each node, but can be used to sum up any tip value
-#' @param values A named numeric vector. Names must match tip labels from tree.
-# could add option later for taking values in the order of tips, in case users want it like that.
-#' @example
+#' Sum up values assigned to tips of a tree down its nodes.
+#' It is used to get total fundings for each node, but can be used to sum up any tip value up to all nodes
+#' @param tree A phylo object
+#' @param values A numeric vector named with the tip labels of the tree. Names must match tip labels from tree.
+#' @details
+#' For now you must use tip labels to name the values vector. We can later just take values in the order of tips, in case users do not want to name their values vector.
+#' @examples
+#' # generate a random tree:
+#' library(ape)
+#' t1 <- rcoal(10)
+#' # generate some fake richness data
+#' r1 <- c(rep(1,5), 400, 20, 30, 5, 200)
+#' names(r1) <- t1$tip.label
+#' # get the node richness values
+#' x <- sum_tips(tree = t1, values = r1)
+#' # plot them:
+#' plot(t1, label.offset = 0.1)
+#' tiplabels(x[1:Ntip(t1)], cex = 0.5)
+#' nodelabels(x[-c(1:Ntip(t1))], cex = 0.5)
 sum_tips <-  function(tree, values) {
     # tree <- ape::reorder.phylo(tree, "postorder")  # no need to reorder the whole tree
     res <- numeric(max(tree$edge))

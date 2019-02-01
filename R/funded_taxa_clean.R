@@ -55,6 +55,7 @@ clean_unmapped_taxa <- function(){
     }
     return(nsf_relevant_grants_raw)
 }
+#' @export
 clean_approximated_taxa <- function(nsf_relevant_grants_raw){
     # II. determine, check and correct names approximated to ott
     correct_names <- vector_names(nsf_relevant_grants_raw$taxa_correct)
@@ -90,7 +91,7 @@ clean_approximated_taxa <- function(nsf_relevant_grants_raw){
     }
     return(nsf_relevant_grants_raw)
 }
-
+#' @export
 clean_synonym_taxa <- function(nsf_relevant_grants_raw){
     # III. determine, check and correct names that are synonyms in tnrs taxonomy
     nsf_relevant_grants_raw$taxa_ott <- nsf_relevant_grants_raw$taxa_correct
@@ -169,6 +170,7 @@ clean_suspicious_taxa <- function(nsf_relevant_grants_raw, taxa = NULL){
   }
   return(nsf_relevant_grants_raw)
 }
+#' @export
 get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree = NULL){
     # enhancement: add possibility to get families from other taxonomies
     # e.g., taxize::downstream("Cottoidea", downto = "family", db = "ncbi")
@@ -266,165 +268,4 @@ get_ott_families <- function(nsf_relevant_grants_raw = NULL, taxa = NULL, tree =
     }
   }
   return(nsf_relevant_grants_raw)
-}
-
-
-#' identifies valid children names, ott_ids and ranks from a taxonomy_taxon_info output
-#' returns a list with valid children unique OTT names, ott_ids and ranks
-# get_valid_children_names <-
-clean_taxon_info_children <- function(taxon_info, invalid = c("barren", "extinct", "uncultured", "major_rank_conflict", "incertae_sedis", "unplaced", "conflict", "environmental", "not_otu")){
-    # invalid <- c("BARREN", "EXTINCT", "UNCULTURED", "MAJOR_RANK_CONFLICT", "INCERTAE", "UNPLACED", "CONFLICT")
-    # names(taxon_info[[2]])
-    for (i in seq(taxon_info)){
-      # length(tax_info[[i]][[1]]$children)
-      # sapply(tax_info[[i]][[1]]$children, length)
-      # length(sapply(sapply(tax_info[[i]][[1]]$children, "[", "flags"), function(y) unlist(tolower(y))))
-      # sapply(sapply(tax_info[[i]][[1]]$children, "[", "flags"), function(y) unlist(tolower(y)))[1]
-      ii <- lapply(sapply(sapply(taxon_info[[i]]$children, "[", "flags"), unlist), function(y) any(toupper(invalid) %in% y))
-      # ii <- lapply(sapply(sapply(taxon_info[[i]][[1]]$children, "[", "flags"), unlist), function(y) any(toupper(invalid) %in% y))
-      if(length(ii)>0){
-        taxon_info[[i]]$children <- taxon_info[[i]]$children[!unlist(ii)]
-      }
-      # now clean names with sp. or environmental
-      ii <- unlist(sapply(c("sp\\.","environmental", "unclassified", "incertae"), function(x) grep(x, sapply(sapply(taxon_info[[i]]$children, "[", "unique_name"), unlist))))
-
-      if(length(ii)>0){
-        taxon_info[[i]]$children <- taxon_info[[i]]$children[-unique(ii)]
-      }
-      # taxon_info[[i]][[1]]$children <- taxon_info[[i]][[1]]$children[!unlist(ii)]
-    }
-    return(taxon_info)
-}
-
-#' checks input for get_ott_clade and get_ott_children functions
-#' returns a numeric vector of ott ids
-check_ott_input <- function(input, ott_id){
-    if(is.null(ott_id)){
-          # input <- datelife::datelife_query_check(input)$cleaned_names
-          input_tnrs <- datelife::batch_tnrs_match_names(names = input)
-          # should we clean tnrs from invalid? what about NA's?
-          input_ott_match <- suppressWarnings(as.numeric(input_tnrs$ott_id))
-          names(input_ott_match) <- input_tnrs$unique_name
-      if(any(is.na(input_ott_match))){
-          message(paste0("Input '", paste(input[which(is.na(input_ott_match))], collapse = "', '"), "', not found in Open Tree of Life Taxonomy."))
-          input_ott_match <- input_ott_match[which(!is.na(input_ott_match))]
-      }
-    } else {
-          input_ott_match <- suppressWarnings(as.numeric(ott_id))
-          # add a check for existing/valid ott ids??
-      if(any(is.na(input_ott_match))){
-          message(paste0("Ott id '", paste(ott_id[which(is.na(input_ott_match))], collapse = "', '"), "', not numeric and will be excluded from the search."))
-          input_ott_match <- input_ott_match[which(!is.na(input_ott_match))]
-      }
-      names(input_ott_match) <- rotl::tax_name(rotl::taxonomy_taxon_info(ott_ids = input_ott_match))
-    }
-    if(length(input_ott_match) < 1){
-      message("At least one valid input name or numeric ott_id are needed to get any information")
-      return(NA)
-    }
-    return(input_ott_match)
-}
-#' gets the ott id and name of one or several given taxonomic rank from one or more input taxa
-#' returns a list of named numeric vectors of ott ids from input and all corresponding requested ranks
-get_ott_clade <- function(input = c("Felis", "Homo"), ott_id = NULL, rank = "family"){
-    # ott_id= c('649007', '782239', '782231', '1053057', '372826', '766272', '36015', '914245', '873016', '684051')
-    # ott_id = c('431493', '431493', '431493', '431493', '431493', '431493', '431493', '429482', '429482', '429482')
-  input_ott_match <- check_ott_input(input, ott_id)
-  tax_info <- vector(mode = "list", length = length(input_ott_match))
-  progression <- utils::txtProgressBar(min = 0, max = length(tax_info), style = 3)
-  for (i in seq(input_ott_match)){
-      tax_info[i] <- tryCatch(rotl::taxonomy_taxon_info(input_ott_match[i], include_lineage = TRUE),
-        error = function(e) NA)
-      utils::setTxtProgressBar(progression, i)
-  }
-  # names(tax_info[[10]])
-  # sapply(tax_info[[10]]$lineage, "[", "rank")
-  # length(tax_info[[10]]$lineage)
-  # names(tax_info[[10]]$lineage[[1]])
-  # tax_info[[10]]$lineage[[1]]$flags
-  input_ott_names <- unlist(sapply(tax_info, "[", "unique_name"))
-  rank_ott_ids <- rank_names <- vector(mode = "list", length = length(rank))
-  # I still need to drop all invalid lineages first here!!!
-  for (i in seq(rank)){
-      rank_names[[i]] <- sapply(tax_info, function(x) {
-          lin <- tryCatch(x$lineage[grep(paste0("^", rank[i], "$"), sapply(x$lineage, "[", "rank"))][[1]]$unique_name,
-          error = function(e) NA)
-          return(lin)
-      })
-      rank_ott_ids[[i]] <- sapply(tax_info, function(x) {
-          lin <- tryCatch(x$lineage[grep(paste0("^", rank[i], "$"), sapply(x$lineage, "[", "rank"))][[1]]$ott_id,
-          error = function(e) NA)
-          return(lin)
-      })
-      names(rank_ott_ids[[i]]) <- rank_names[[i]]
-      # length(rank_ott_ids[i])
-      # stop()
-  }
-  names(input_ott_match) <-  input_ott_names
-  res <- c(list(input_ott_match), rank_ott_ids)
-  names(res) <- c("input", rank)
-  return(res)
-}
-#'
-#' extracts valid children from a taxon_info object from rotl
-get_valid_children <- function(input = c("Felis", "Homo", "Malvaceae"), ott_id = NULL){
-    input_ott_match <- check_ott_input(input, ott_id)
-    all_children <- vector(mode = "list", length = length(input_ott_match))
-    # monotypic <- vector(mode = "logical", length = length(input_ott_match))
-    progression <- utils::txtProgressBar(min = 0, max = length(all_children), style = 3)
-    for (i in seq(length(input_ott_match))){
-        tt <- tryCatch(rotl::taxonomy_taxon_info(input_ott_match[i], include_children = TRUE),
-          error = function(e) NA)
-        tt <- clean_taxon_info_children(tt) # removes all invalid children
-        if(length(tt[[1]]$children) > 0){
-          # sapply(tt[[1]]$children, "[", "flags")
-          # sapply(tt[[1]]$children, "[", "unique_name")
-          # which(unlist(sapply(tt[[1]]$children, "[", "unique_name")) == "Mesangiospermae")
-          # tt[[1]]$children[108]
-          rr <- unname(unlist(sapply(tt[[1]]$children, "[", "rank")))
-          # ii <- grep(paste0("^", ott_rank, "$"), unname(unlist(rr)))  # need to unlist rr
-          child <- unname(unlist(sapply(tt[[1]]$children, "[", "ott_id")))
-          # if(length(child)>0){
-              names(child) <- names(rr) <- unname(unlist(sapply(tt[[1]]$children, "[", "unique_name")))
-          # }
-          monotypic <- FALSE
-        } else {
-          child <- tt[[1]]$ott_id
-          rr <- tt[[1]]$rank
-          names(child) <- names(rr) <- tt[[1]]$unique_name
-          monotypic <- TRUE
-        }
-        all_children[[i]] <- list(children = data.frame(ott_id = child, rank = rr), is_monotypic = monotypic)
-        utils::setTxtProgressBar(progression, i)
-    }
-    names(all_children) <- names(input_ott_match)
-    return(all_children)
-}
-get_ott_children <- function(input = c("Felis", "Homo", "Malvaceae"), ott_id = NULL, ott_rank = "species"){
-    input_ott_match <- check_ott_input(input, ott_id)
-    all_children <- vector(mode = "list", length = length(input_ott_match))
-    # progression <- utils::txtProgressBar(min = 0, max = length(all_children), style = 3)
-    for (i in seq(length(input_ott_match))){
-        mm <- data.frame(ott_id = vector(mode = "numeric", length = 0), rank = vector(mode = "logical", length = 0))
-        vv <- get_valid_children(ott_id = input_ott_match[i])
-        success <- vv[[1]]$children$rank == ott_rank | vv[[1]]$is_monotypic
-        if(any(success)){
-          mm <- rbind(mm, vv[[1]]$children[success,])
-        }
-        while(!all(success)){
-          vv <- get_valid_children(ott_id = unlist(sapply(sapply(vv, "[", "children"), "[", "ott_id"))[!success])
-          if(any(unlist(sapply(vv, "[", "is_monotypic")))){
-            mm <- rbind(mm, do.call("rbind", sapply(vv[unlist(sapply(vv, "[", "is_monotypic"))], "[", "children")))
-            vv <- vv[!unlist(sapply(vv, "[", "is_monotypic"))]
-          }
-          success <- unlist(sapply(sapply(vv, "[", "children"), "[", "rank")) == ott_rank
-          if(any(success)){
-            mm <- rbind(mm, do.call("rbind", sapply(vv, "[", "children"))[success,])
-          }
-        }
-        # utils::setTxtProgressBar(progression, i)
-        all_children[[i]] <- mm
-    }
-    names(all_children) <- names(input_ott_match)
-    return(all_children)
 }
