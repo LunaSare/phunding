@@ -5,19 +5,17 @@ length(fam_funds$ott_names)
 utils::data(fam_tree)
 names(fam_tree)
 # II. use dates from blackrim service for now
-fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_ids = gsub("(.*)ott", "", unique(c(fam_tree$ott_ids, names(fam_funds$funds)))))
+fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_id = gsub("(.*)ott", "", unique(c(fam_tree$ott_ids, names(fam_funds$funds)))))
 
 
 
-famsaa_ottid <- unique(fams_aa_tnrs$ott_id)
-famsaa_orders <- get_ott_clade(ott_id = famsaa_ottid, rank = "order")
-# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_ids = famsaa_ottid) # 94 tips
+# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_id = famsaa_ottid) # 94 tips
 # all_plants <- c(famsaa_ottid, unique(ee$Embryophyta$ott_id))
-# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_ids = all_plants)
+# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_id = all_plants)
 # Error in curl::curl_fetch_memory(url, handle = handle) :
 #   Timeout was reached: Operation timed out after 10000 milliseconds with 0 bytes received
 # all_plants <- c(famsaa_ottid, unique(ee$Embryophyta$ott_id)[-match(unique(famsaa_orders$order), unique(ee$Embryophyta$ott_id))]) # AA fams mapped to ott taxonomy plus all_other_plant_fams
-# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_ids = all_plants) #194 tips, because AA fams belong to 45 orders
+# fam_tree_brlen <- datelife::get_dated_otol_induced_subtree(ott_id = all_plants) #194 tips, because AA fams belong to 45 orders
 #
 # names(fam_tree_brlen)
 # head(fam_tree_brlen$ott_ids)
@@ -25,11 +23,11 @@ famsaa_orders <- get_ott_clade(ott_id = famsaa_ottid, rank = "order")
 library(drake)
 library(devtools)
 load_all("~/Desktop/datelife")
-#functions
+# drake functions
 make_yychrono <- function(yyspp){
   yychrono <- vector(mode = 'list', length(yyspp))
   for(i in seq(length(yyspp))){
-    yychrono[[i]] <- datelife::get_dated_otol_induced_subtree(ott_ids = yyspp[[i]]$ott_id)
+    yychrono[[i]] <- datelife::get_dated_otol_induced_subtree(ott_id = yyspp[[i]]$ott_id)
   }
   yychrono
 }
@@ -43,20 +41,37 @@ make_plot1 <- function(fam_tree_brlen, edge_cols, tip_cols, aa_index){
   # ape::nodelabels(text = as.character(seq(ape::Ntip(fam_tree))), edge=seq(ape::Ntip(fam_tree)), cex = 0.5, frame = "none")
   dev.off()
 }
+
+
+
+read_csv <- function(file){
+  xx <- read.csv(file = file, header = TRUE, fill = TRUE, stringsAsFactors=FALSE)
+  xx
+}
 plan <- drake_plan(
+  # get all plant orders:
+    ee = get_ott_children(input= "embryophyta", ott_rank = "order"),
     ef = get_ott_children(input= "embryophyta", ott_rank = "family"),
-    fam_all_chrono = datelife::get_dated_otol_induced_subtree(ott_id = ef$Embryophyta$ott_id)
+    fam_all_chrono = datelife::get_dated_otol_induced_subtree(ott_id = ef$Embryophyta$ott_id),
 # length(ef$Embryophyta$ott_id)- ape::Ntip(fam_all_chrono) # 62 families where dropped from the tree
 # get funded families that belong to "embryophyta":
-    fpf = match(ef$Embryophyta$ott_id, as.numeric(gsub("(.*)ott", "", unique(names(fam_funds$funds)))))
+    fpf = match(ef$Embryophyta$ott_id, as.numeric(gsub("(.*)ott", "", unique(names(fam_funds$funds))))),
 # fpf <- fpf[!is.na(fpf)]
 # fam_funds$funds[fpf]
 # fam_funds$ott_names[fpf]
 # names(fam_funds$funds[fpf]) %in% fam_tree_brlen$ott_ids
-    ff_ottid = as.numeric(gsub("(.*)ott", "", unique(names(fam_funds$funds[fpf]))))
-    ffo = get_ott_clade(ott_id = ff_ottid, rank = "order")
+    ff_ottid = as.numeric(gsub("(.*)ott", "", unique(names(fam_funds$funds[fpf])))),
+    ffo = get_ott_clade(ott_id = ff_ottid, ott_rank = "order"),
+    xx = read_csv1(file = "~/GoogleDrive/getting_a_job/2018-fall/ArnoldArboretum/arnold_arboretum_living_plants.csv"),
+    length(unique(xx$FAMILY)), # 108 families in AA
+    fams_aa = unique(xx$FAMILY),
+    fams_aa_tnrs = datelife:::clean_tnrs(datelife::tnrs_match(fams_aa)),
+    famsaa_ottid = unique(fams_aa_tnrs$ott_id),
+    famsaa_orders = get_ott_clade(ott_id = famsaa_ottid, ott_rank = "order")
+)
+# still need to run the following into the drake plan:
     all_plants = c(famsaa_ottid, ff_ottid, unique(ee$Embryophyta$ott_id)[-match(unique(c(famsaa_orders$order, ffo$order)), unique(ee$Embryophyta$ott_id))])
-    fam_tree_brlen = datelife::get_dated_otol_induced_subtree(ott_ids = all_plants) #230 tips, because funded fams belong to 9 orders and there's 47 of them
+    fam_tree_brlen = datelife::get_dated_otol_induced_subtree(ott_id = all_plants) #230 tips, because funded fams belong to 9 orders and there's 47 of them
 
     aa_index <- match(paste0("ott", famsaa_ottid), fam_tree_brlen$ott)
 # famsaa_chrono <- datelife::get_dated_otol_induced_subtree(ott_ids = famsaa_ottid[which(is.na(aa_index))])
