@@ -1,6 +1,5 @@
 #' function to get a family tree level from Open Tree of Life synthetic tree
 #'
-
 get_otol_family_tree <- function(){
     utils::data(all_ott_fams)
     fam_tree <- suppressWarnings(rotl::tol_induced_subtree(ott_id=all_ott_fams$ott_id, label_format = "name"))
